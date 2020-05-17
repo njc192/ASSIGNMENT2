@@ -19,17 +19,19 @@ time_difference = 0
 # Creates a UDP socket.
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 
+
+def calc_rtt(time_start, time_end)
+   return (1000*(time_received - time_sent))
+
 for x in range(0, 10):
    clientSocket.settimeout(2.0) # Times out at 2 seconds.
    message = "Ping" + str(x + 1) # Creates application layer message
-   # Creates transport layer packet while sending to the server
-
 
    #starting_time is the time the message was sent
    time_start = time.time()
+   # Creates transport layer packet while sending to the server
    clientSocket.sendto(message.encode(),(serverName, serverPort))
-   print("Mesg sent: " + message)
-
+   print("Mesg sent : " + message)
 
    try:
       # Receive the server packet along with the address it is coming from
