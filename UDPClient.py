@@ -1,3 +1,4 @@
+
 ''' UDPClient.py
  Programming Assignment 2: UDP Pinger
  Team 7: Central Coast Programming Consultants
@@ -15,7 +16,12 @@ import time
 # Client needs the name and port of the server to send packets.
 serverName = 'localhost'
 serverPort = 12000
-time_difference = 0
+rtt_max = 0
+rtt_min = float("inf")
+time_start = 0
+time_end = 0
+avg = 0
+counter =0
 # Creates a UDP socket.
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 # Variables used in calculations
@@ -67,18 +73,23 @@ for x in range(0, 10):
    clientSocket.settimeout(timeout_interval) # Times out at 2 seconds.
    message = "Ping" + str(x + 1) # Creates application layer message
 
+
    #starting_time is the time the message was sent
+
    time_start = time.time()
    # Creates transport layer packet while sending to the server
    clientSocket.sendto(message.encode(),(serverName, serverPort))
+
    print("Mesg sent : " + message)
+
 
    try:
       # Receive the server packet along with the address it is coming from
       # Application layer message gets separated from transport layer packet.
-      
       modifiedMessage, serverAddress = clientSocket.recvfrom(1024)
+      counter +=1
       time_end = time.time()
+
 
       print("Mesg rcvd: " + modifiedMessage.decode() + "\n")
       print("Sent at: ", time_start)
@@ -96,11 +107,17 @@ for x in range(0, 10):
 
       print("")
 
+
    except timeout:
        # Packet was lost.
        print("No Mesg rcvd \nPONG " + str(x + 1) + " Request Timed out\n")
 
 # The client closes the socket when all pings are done.
 clientSocket.close()
-
+print("counter" + str(counter))
+print("sum" + str(avg))
+avg = float(avg)/counter
+print("avg was : " + str(avg))
+print("min rtt was : " + str(rtt_min))
+print("max rtt was : " + str(rtt_max))
 
