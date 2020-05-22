@@ -38,7 +38,8 @@ def calc_rtt(time_start, time_end):
    return (1000*(time_end - time_start))
 
 # Update the running total sum of RTT so far
-def add_to_avg(rtt, total_time):
+def add_to_avg(rtt):
+   global total_time
    total_time += rtt
 
 # Calculate and return Estimated RTT
@@ -96,7 +97,7 @@ for x in range(0, 10):
       print("Received at: ",time_end)
       received_count = received_count + 1
       rtt = calc_rtt(time_start, time_end) 
-      add_to_avg(rtt, total_time)
+      add_to_avg(rtt)
       estimated_rtt = handle_estimated_rtt(received_count, estimated_rtt, rtt)
       dev_rtt = handle_dev_rtt(received_count, dev_rtt, estimated_rtt, rtt);
       timeout_interval = update_timeout_interval(estimated_rtt, dev_rtt)
@@ -115,7 +116,7 @@ for x in range(0, 10):
 # The client closes the socket when all pings are done.
 clientSocket.close()
 print("counter" + str(counter))
-print("sum" + str(avg))
+print("sum " + str(total_time))
 avg = float(avg)/counter
 print("avg was : " + str(avg))
 print("min rtt was : " + str(rtt_min))
