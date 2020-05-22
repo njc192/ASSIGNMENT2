@@ -111,6 +111,12 @@ for x in range(0, 10):
       print("Estimated RTT deviation: " + str(dev_rtt))
       print("New timout interval: " + str(timeout_interval))
 
+      # Handle min and max
+      if rtt > rtt_max:
+          rtt_max = rtt
+      if rtt < rtt_min:
+          rtt_min = rtt 
+
       print("")
 
 
