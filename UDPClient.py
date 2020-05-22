@@ -26,12 +26,14 @@ counter =0
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 # Variables used in calculations
 received_count = 0 # No. of reponses received. Updated immediately on new response
+sent_count = 0; # No. of messages sent. Updated immediately after sending.
 total_time = 0 # Sum of RTTs used to calculate average RTT at the end
 alpha = 0.125 # Used in estimated rtt calculation
 estimated_rtt = 0 # Estimated RTT used for dev_rtt & setting the timeout interval
 beta = 0.25 # Used in dev rtt calculation
 dev_rtt = 0 # Estimated RTT deviation used for setting the timeout interval
 timeout_interval = 2.0 # Sets the initial timeout to about 2 seconds
+last_packet_lost = False; # Stores whether last packet was lost. Used for Dev RTT
 
 # Calculates RTT based on sent and received times
 def calc_rtt(time_start, time_end):
@@ -40,6 +42,7 @@ def calc_rtt(time_start, time_end):
 # Update the running total sum of RTT so far
 def add_to_avg(rtt, total_time):
    total_time += rtt
+   return total_time
 
 # Calculate and return Estimated RTT
 def handle_estimated_rtt(received_count, estimated_rtt, sample_rtt):
@@ -53,14 +56,17 @@ def handle_estimated_rtt(received_count, estimated_rtt, sample_rtt):
    return estimated_rtt
 
 # Calculate and return Estimated RTT Deviation
-def handle_dev_rtt(received_count, dev_rtt, estimated_rtt, sample_rtt):
+def handle_dev_rtt(dev_rtt, estimated_rtt, sample_rtt, last_packet_lost, sent_count):
    beta = 0.25
-   # If this is the first response we've received (assumes received_count has 
-   #  been incremented for the first response), then set default values
-   if (received_count == 1): 
+   # If the last packet was lost, keep the dev_rtt the same
+   if last_packet_lost:
+      return dev_rtt
+   # If last response received is to the 1st msg we sent, set default value
+   if (sent_count == 1): 
       dev_rtt = rtt / 2;
-   # calc dev rtt
-   dev_rtt = (1 - alpha) * estimated_rtt + alpha * sample_rtt
+   else:
+      # calc dev rtt
+      dev_rtt = (1 - beta) * dev_rtt + beta * abs(sample_rtt - estimated_rtt)
    return dev_rtt
 
 # Calculate a new timeout interval and return it
@@ -79,7 +85,7 @@ for x in range(0, 10):
    time_start = time.time()
    # Creates transport layer packet while sending to the server
    clientSocket.sendto(message.encode(),(serverName, serverPort))
-
+   sent_count = sent_count + 1
    print("Mesg sent : " + message)
 
 
@@ -87,9 +93,9 @@ for x in range(0, 10):
       # Receive the server packet along with the address it is coming from
       # Application layer message gets separated from transport layer packet.
       modifiedMessage, serverAddress = clientSocket.recvfrom(1024)
-      counter +=1
       time_end = time.time()
-
+      counter +=1
+      last_packet_lost = False
 
       print("Mesg rcvd: " + modifiedMessage.decode() + "\n")
       print("Sent at: ", time_start)
@@ -98,7 +104,7 @@ for x in range(0, 10):
       rtt = calc_rtt(time_start, time_end) 
       add_to_avg(rtt, total_time)
       estimated_rtt = handle_estimated_rtt(received_count, estimated_rtt, rtt)
-      dev_rtt = handle_dev_rtt(received_count, dev_rtt, estimated_rtt, rtt);
+      dev_rtt = handle_dev_rtt(dev_rtt, estimated_rtt, rtt, last_packet_lost, sent_count)
       timeout_interval = update_timeout_interval(estimated_rtt, dev_rtt)
       print("RTT: " +  str(rtt))
       print("Estimated RTT: " + str(estimated_rtt))
@@ -110,13 +116,14 @@ for x in range(0, 10):
 
    except timeout:
        # Packet was lost.
+       last_packet_lost = True;
        print("No Mesg rcvd \nPONG " + str(x + 1) + " Request Timed out\n")
 
 # The client closes the socket when all pings are done.
 clientSocket.close()
-print("counter" + str(counter))
-print("sum" + str(avg))
-avg = float(avg)/counter
+print("counter" + str(received_count))
+print("sum" + str(total_time))
+avg = float(total_time)/received_count
 print("avg was : " + str(avg))
 print("min rtt was : " + str(rtt_min))
 print("max rtt was : " + str(rtt_max))
