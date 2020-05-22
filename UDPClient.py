@@ -80,14 +80,14 @@ for x in range(0, 10):
    message = "Ping" + str(x + 1) # Creates application layer message
 
 
-   #starting_time is the time the message was sent
-
-   time_start = time.time()
    # Creates transport layer packet while sending to the server
    clientSocket.sendto(message.encode(),(serverName, serverPort))
+   
+   # Record the time the message was sent
+   time_start = time.time()
+   
    sent_count = sent_count + 1
    print("Mesg sent : " + message)
-
 
    try:
       # Receive the server packet along with the address it is coming from
@@ -97,19 +97,20 @@ for x in range(0, 10):
       counter +=1
       last_packet_lost = False
 
-      print("Mesg rcvd: " + modifiedMessage.decode() + "\n")
-      print("Sent at: ", time_start)
-      print("Received at: ",time_end)
+      print("Mesg rcvd: " + modifiedMessage.decode())
+      print("Start time: " + str(time_start))
+      print("Return time: ",str(time_end))
       received_count = received_count + 1
       rtt = calc_rtt(time_start, time_end) 
       add_to_avg(rtt, total_time)
       estimated_rtt = handle_estimated_rtt(received_count, estimated_rtt, rtt)
       dev_rtt = handle_dev_rtt(dev_rtt, estimated_rtt, rtt, last_packet_lost, sent_count)
       timeout_interval = update_timeout_interval(estimated_rtt, dev_rtt)
-      print("RTT: " +  str(rtt))
-      print("Estimated RTT: " + str(estimated_rtt))
-      print("Estimated RTT deviation: " + str(dev_rtt))
-      print("New timout interval: " + str(timeout_interval))
+      print("PONG " + str(x + 1) + " RTT: " +  str(rtt) + " ms")
+      
+      print("Estimated RTT: " + str(estimated_rtt) + " ms")
+      print("Estimated RTT deviation: " + str(dev_rtt) + " ms")
+      print("New timout interval: " + str(timeout_interval) + " ms")
 
       # Handle min and max
       if rtt > rtt_max:
@@ -117,20 +118,23 @@ for x in range(0, 10):
       if rtt < rtt_min:
           rtt_min = rtt 
 
-      print("")
-
-
    except timeout:
        # Packet was lost.
        last_packet_lost = True;
-       print("No Mesg rcvd \nPONG " + str(x + 1) + " Request Timed out\n")
+       print("No Mesg rcvd \nPONG " + str(x + 1) + " Request Timed out")
+   
+   print("")
 
 # The client closes the socket when all pings are done.
 clientSocket.close()
-print("counter" + str(received_count))
-print("sum" + str(total_time))
+
 avg = float(total_time)/received_count
-print("avg was : " + str(avg))
-print("min rtt was : " + str(rtt_min))
-print("max rtt was : " + str(rtt_max))
+
+print("Min RTT:         " + str(rtt_min) + " ms")
+print("Max RTT:         " + str(rtt_max) + " ms")
+print("Avg RTT:         " + str(avg) + " ms")
+print("Packet Loss:     " + str(100.0 - received_count / sent_count * 100) + "%");
+print("Estimated RTT:   " + str(estimated_rtt) + " ms")
+print("Dev RTT:         " + str(dev_rtt) + " ms")
+print("Timeout Interval:" + str(timeout_interval) + " ms")
 
