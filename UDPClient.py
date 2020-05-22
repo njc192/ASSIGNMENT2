@@ -20,16 +20,15 @@ rtt_max = 0
 rtt_min = float("inf")
 time_start = 0
 time_end = 0
-avg = 0
-counter =0
+average = 0
 # Creates a UDP socket.
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 # Variables used in calculations
 received_count = 0 # No. of reponses received. Updated immediately on new response
 total_time = 0 # Sum of RTTs used to calculate average RTT at the end
 alpha = 0.125 # Used in estimated rtt calculation
-estimated_rtt = 0 # Estimated RTT used for dev_rtt & setting the timeout interval
 beta = 0.25 # Used in dev rtt calculation
+estimated_rtt = 0 # Estimated RTT used for dev_rtt & setting the timeout interval
 dev_rtt = 0 # Estimated RTT deviation used for setting the timeout interval
 timeout_interval = 2.0 # Sets the initial timeout to about 2 seconds
 
@@ -38,8 +37,9 @@ def calc_rtt(time_start, time_end):
    return (1000*(time_end - time_start))
 
 # Update the running total sum of RTT so far
-def add_to_avg(rtt, total_time):
-   total_time += rtt
+def add_to_avg(rtt,total_time):
+    total_time += rtt
+    return total_time
 
 # Calculate and return Estimated RTT
 def handle_estimated_rtt(received_count, estimated_rtt, sample_rtt):
@@ -68,6 +68,17 @@ def update_timeout_interval(estimated_rtt, dev_rtt):
    timeout_interval = estimated_rtt + 4 * dev_rtt
    return timeout_interval
 
+
+def min(rtt):
+    if(rtt < rtt_min):
+        return rtt
+    return rtt_min
+
+def max(rtt):
+    if(rtt > rtt_max):
+        return rtt
+    return rtt_max
+
 # Begin sending and receiving messages
 for x in range(0, 10):
    clientSocket.settimeout(timeout_interval) # Times out at 2 seconds.
@@ -86,26 +97,27 @@ for x in range(0, 10):
    try:
       # Receive the server packet along with the address it is coming from
       # Application layer message gets separated from transport layer packet.
-      modifiedMessage, serverAddress = clientSocket.recvfrom(1024)
-      counter +=1
-      time_end = time.time()
+       modifiedMessage, serverAddress = clientSocket.recvfrom(1024)
+       received_count +=1
 
+       time_end = time.time()
 
-      print("Mesg rcvd: " + modifiedMessage.decode() + "\n")
-      print("Sent at: ", time_start)
-      print("Received at: ",time_end)
-      received_count = received_count + 1
-      rtt = calc_rtt(time_start, time_end) 
-      add_to_avg(rtt, total_time)
-      estimated_rtt = handle_estimated_rtt(received_count, estimated_rtt, rtt)
-      dev_rtt = handle_dev_rtt(received_count, dev_rtt, estimated_rtt, rtt);
-      timeout_interval = update_timeout_interval(estimated_rtt, dev_rtt)
-      print("RTT: " +  str(rtt))
-      print("Estimated RTT: " + str(estimated_rtt))
-      print("Estimated RTT deviation: " + str(dev_rtt))
-      print("New timout interval: " + str(timeout_interval))
+       print("Message received: " + modifiedMessage.decode() + "\n")
+       print("Sent:" + str(time_start) + "\t" +"Received" + str(time_end))
+       rtt = calc_rtt(time_start,time_end)
+       total_time = add_to_avg(rtt,total_time)
+       print("!!!! total time is: " + str(total_time))
+       estimated_rtt = handle_estimated_rtt(received_count, estimated_rtt, rtt)
+       dev_rtt = handle_dev_rtt(received_count,dev_rtt, estimated_rtt,rtt)
+       timeout_interval = update_timeout_interval(estimated_rtt,dev_rtt)
+       rtt_min = min(rtt)
+       rtt_max = max(rtt)
 
-      print("")
+       print("RTT:" + str(rtt))
+       print("Estimated RTT:" + str(estimated_rtt))
+       print("Dev RTT:" + str(dev_rtt))
+       print("New timeout interval:" + str(timeout_interval))
+       print()
 
 
    except timeout:
@@ -114,9 +126,9 @@ for x in range(0, 10):
 
 # The client closes the socket when all pings are done.
 clientSocket.close()
-print("counter" + str(counter))
-print("sum" + str(avg))
-avg = float(avg)/counter
+print("received_counter" + str(received_count))
+print("sum " + str(total_time))
+avg = float(total_time)/received_count
 print("avg was : " + str(avg))
 print("min rtt was : " + str(rtt_min))
 print("max rtt was : " + str(rtt_max))
